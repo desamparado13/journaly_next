@@ -43,7 +43,10 @@ for (const [table, info] of autoIncrements.entries()) {
   const sequenceName = `${table}_${info.column}_seq`;
   converted.push(`create sequence if not exists "${sequenceName}";`);
   converted.push(
-    `select setval('"${sequenceName}"', greatest((select coalesce(max("${info.column}"), 0) from "${table}"), ${info.nextValue - 1}), true);`
+    `select setval('"${sequenceName}"', greatest((select coalesce(max("${info.column}"), 1) from "${table}"), ${Math.max(
+      info.nextValue - 1,
+      1
+    )}), (select count(*) > 0 from "${table}"));`
   );
   converted.push(
     `alter table "${table}" alter column "${info.column}" set default nextval('"${sequenceName}"');`
