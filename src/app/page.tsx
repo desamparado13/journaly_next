@@ -7,6 +7,7 @@ const navItems = ["Overview", "Trades", "Backtesting", "Research", "Trials"];
 export default async function Home() {
   const journaly = await loadJournalyDashboard();
   const latestTrade = journaly.trades[0];
+  const latestImage = legacyAssetUrl(latestTrade?.screenshot_path);
 
   return (
     <main className="appShell">
@@ -29,7 +30,7 @@ export default async function Home() {
         </nav>
 
         <div className="sidebarNote">
-          <p>Supabase</p>
+          <p>Database</p>
           <strong>{journaly.connected ? "Connected" : "Waiting for import"}</strong>
         </div>
       </aside>
@@ -37,16 +38,17 @@ export default async function Home() {
       <section className="appMain">
         <header className="appHeader">
           <div>
-            <p className="eyebrow">Live Workspace</p>
-            <h1>Good data, calm execution.</h1>
+            <p className="eyebrow">Journaly V2</p>
+            <h1>Trading Command Center</h1>
             <p>
-              Track real trades, backtests, research ideas, quick notes, and challenge
-              progress from your migrated Journaly database.
+              Review execution quality, backtest evidence, research notes, and challenge
+              progress from the migrated Supabase database.
             </p>
           </div>
-          <Link className="primaryAction" href="/trades">
-            Review trades
-          </Link>
+          <div className="headerActions">
+            <Link className="ghostAction" href="/migration">Migration</Link>
+            <Link className="primaryAction" href="/trades">Trades</Link>
+          </div>
         </header>
 
         {journaly.error ? (
@@ -61,52 +63,27 @@ export default async function Home() {
           <article>
             <p>Total R</p>
             <strong>{formatR(journaly.stats.totalR)}</strong>
+            <span>Imported trade sample</span>
           </article>
           <article>
             <p>Win Rate</p>
             <strong>{journaly.stats.winRate.toFixed(1)}%</strong>
+            <span>{journaly.stats.wins} wins · {journaly.stats.losses} losses</span>
           </article>
           <article>
             <p>Trades</p>
             <strong>{journaly.counts.trades}</strong>
+            <span>Live Supabase rows</span>
           </article>
           <article>
             <p>Backtests</p>
             <strong>{journaly.counts.backtests}</strong>
+            <span>Replay database</span>
           </article>
         </section>
 
         <section className="dashboardGrid">
-          <article className="featurePanel">
-            <div className="panelHeader">
-              <div>
-                <p className="eyebrow">Latest Trade</p>
-                <h2>{latestTrade ? `${latestTrade.pair} ${latestTrade.direction}` : "No trade loaded"}</h2>
-              </div>
-              {latestTrade ? <span className={latestTrade.result === "Win" ? "pillWin" : "pillLoss"}>{latestTrade.result}</span> : null}
-            </div>
-            {latestTrade ? (
-              <>
-                <div className="tradeHero">
-                  {legacyAssetUrl(latestTrade.screenshot_path) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={legacyAssetUrl(latestTrade.screenshot_path) ?? ""} alt="" />
-                  ) : (
-                    <div className="emptyImage">No screenshot</div>
-                  )}
-                </div>
-                <div className="tradeMeta">
-                  <span>{formatDate(latestTrade.trade_date)}</span>
-                  <span>{latestTrade.setup_type}</span>
-                  <strong>{formatR(latestTrade.pnl_r)}</strong>
-                </div>
-              </>
-            ) : (
-              <p className="emptyText">Import your SQL in Supabase to populate the dashboard.</p>
-            )}
-          </article>
-
-          <article className="listPanel">
+          <article className="listPanel widePanel">
             <div className="panelHeader">
               <div>
                 <p className="eyebrow">Recent Trades</p>
@@ -114,18 +91,54 @@ export default async function Home() {
               </div>
               <Link href="/trades">View all</Link>
             </div>
-            <div className="rowList">
-              {journaly.trades.slice(0, 6).map((trade) => (
-                <div className="dataRow" key={trade.id}>
-                  <div>
-                    <strong>{trade.pair}</strong>
-                    <span>{trade.setup_type} · {formatDate(trade.trade_date)}</span>
-                  </div>
+            <div className="tradeTable">
+              <div className="tradeTableHead">
+                <span>Date</span>
+                <span>Pair</span>
+                <span>Setup</span>
+                <span>Side</span>
+                <span>Result</span>
+                <span>R</span>
+              </div>
+              {journaly.trades.slice(0, 8).map((trade) => (
+                <div className="tradeTableRow" key={trade.id}>
+                  <span>{formatDate(trade.trade_date)}</span>
+                  <strong>{trade.pair}</strong>
+                  <span>{trade.setup_type}</span>
+                  <span>{trade.direction}</span>
+                  <span className={trade.result === "Win" ? "resultWin" : "resultLoss"}>{trade.result}</span>
                   <b className={Number(trade.pnl_r) >= 0 ? "positive" : "negative"}>{formatR(trade.pnl_r)}</b>
                 </div>
               ))}
-              {journaly.trades.length === 0 ? <p className="emptyText">No trades found yet.</p> : null}
+              {journaly.trades.length === 0 ? <p className="emptyText">Import your SQL in Supabase to populate the dashboard.</p> : null}
             </div>
+          </article>
+
+          <article className="featurePanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Latest Capture</p>
+                <h2>{latestTrade ? `${latestTrade.pair} ${latestTrade.direction}` : "No trade loaded"}</h2>
+              </div>
+              {latestTrade ? <span className={latestTrade.result === "Win" ? "pillWin" : "pillLoss"}>{latestTrade.result}</span> : null}
+            </div>
+            {latestTrade ? (
+              <div className="captureCard">
+                <div className="tradeHero">
+                  {latestImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={latestImage} alt="" />
+                  ) : (
+                    <div className="emptyImage">No screenshot</div>
+                  )}
+                </div>
+                <dl className="tradeStats">
+                  <div><dt>Date</dt><dd>{formatDate(latestTrade.trade_date)}</dd></div>
+                  <div><dt>Setup</dt><dd>{latestTrade.setup_type}</dd></div>
+                  <div><dt>Return</dt><dd>{formatR(latestTrade.pnl_r)}</dd></div>
+                </dl>
+              </div>
+            ) : <p className="emptyText">No latest trade found yet.</p>}
           </article>
 
           <article className="listPanel">
