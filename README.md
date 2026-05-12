@@ -1,4 +1,4 @@
-# Journaly Next
+# Journaly V2
 
 This repo is the migration workspace for moving the existing `journaly_v2` PHP/MySQL app from XAMPP/InfinityFree into a Vercel + Supabase setup.
 
@@ -35,7 +35,7 @@ On this machine, npm may need to be called directly from Laragon:
 1. Create a fresh Supabase project.
 2. Copy `.env.example` to `.env.local` and set:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
 3. Generate the migration:
 

@@ -1,146 +1,166 @@
-import { legacyTables } from "@/lib/supabase";
+import Link from "next/link";
+import { formatDate, formatR, loadJournalyDashboard } from "@/lib/journaly-data";
+import { legacyAssetUrl } from "@/lib/assets";
 
-const migrationSteps = [
-  {
-    eyebrow: "Schema",
-    title: "Build Supabase SQL",
-    detail: "Generate Postgres-safe tables, indexes, sequences, and legacy row inserts.",
-    command: "npm run migration:build"
-  },
-  {
-    eyebrow: "Database",
-    title: "Apply Migration",
-    detail: "Run the generated SQL against a fresh Supabase project before any traffic moves.",
-    command: "supabase db push"
-  },
-  {
-    eyebrow: "Storage",
-    title: "Upload Legacy Assets",
-    detail: "Move copied trade screenshots, backtests, avatars, and reports into Supabase Storage.",
-    command: "npm run storage:upload"
-  },
-  {
-    eyebrow: "Audit",
-    title: "Verify Counts",
-    detail: "Compare the local manifest against Supabase rows and asset totals.",
-    command: "npm run migration:verify"
-  }
-];
+const navItems = ["Overview", "Trades", "Backtesting", "Research", "Trials"];
 
-const metrics = [
-  ["Legacy Tables", legacyTables.length.toString()],
-  ["Uploaded Files", "200"],
-  ["Asset Folders", "7"],
-  ["Protected Dump", "1"]
-];
+export default async function Home() {
+  const journaly = await loadJournalyDashboard();
+  const latestTrade = journaly.trades[0];
 
-const integrityChecks = [
-  "Legacy numeric IDs are preserved before sequences are advanced.",
-  "Stored upload paths remain unchanged during the first migration.",
-  "Private SQL, tokens, password hashes, and screenshots stay out of Git.",
-  "The old host should remain online until Supabase counts are verified."
-];
-
-export default function Home() {
   return (
-    <main className="shell">
-      <section className="hero">
-        <nav className="topbar" aria-label="Journaly V2">
-          <div className="brandMark" aria-hidden="true">
-            J2
-          </div>
+    <main className="appShell">
+      <aside className="appSidebar">
+        <Link className="appBrand" href="/">
+          <span>J2</span>
           <div>
-            <p className="brandKicker">Journaly V2</p>
-            <p className="brandSubline">Vercel + Supabase migration</p>
+            <strong>Journaly V2</strong>
+            <small>Trading command center</small>
           </div>
-          <div className="topbarStatus">Data locked</div>
+        </Link>
+
+        <nav className="appNav" aria-label="Journaly navigation">
+          {navItems.map((item) => (
+            <Link key={item} href={item === "Overview" ? "/" : `/${item.toLowerCase()}`}>
+              {item}
+            </Link>
+          ))}
+          <Link href="/migration">Migration</Link>
         </nav>
 
-        <div className="heroGrid">
-          <div className="heroCopy">
-            <p className="eyebrow">Premium rebuild, zero data drift</p>
-            <h1 className="title">Journaly V2</h1>
-            <p className="subtitle">
-              A cleaner trading journal foundation for Vercel and Supabase,
-              shaped around one rule: your trades, screenshots, reports, notes,
-              and account history move intact before the interface evolves.
+        <div className="sidebarNote">
+          <p>Supabase</p>
+          <strong>{journaly.connected ? "Connected" : "Waiting for import"}</strong>
+        </div>
+      </aside>
+
+      <section className="appMain">
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">Live Workspace</p>
+            <h1>Good data, calm execution.</h1>
+            <p>
+              Track real trades, backtests, research ideas, quick notes, and challenge
+              progress from your migrated Journaly database.
             </p>
           </div>
+          <Link className="primaryAction" href="/trades">
+            Review trades
+          </Link>
+        </header>
 
-          <aside className="heroPanel" aria-label="Migration snapshot">
-            <div className="heroPanelHeader">
-              <span>Migration Snapshot</span>
-              <strong>Ready for Supabase</strong>
+        {journaly.error ? (
+          <section className="noticePanel">
+            <strong>Supabase import check</strong>
+            <p>{journaly.error}</p>
+            <Link href="/migration">Open migration steps</Link>
+          </section>
+        ) : null}
+
+        <section className="metricStrip" aria-label="Journaly metrics">
+          <article>
+            <p>Total R</p>
+            <strong>{formatR(journaly.stats.totalR)}</strong>
+          </article>
+          <article>
+            <p>Win Rate</p>
+            <strong>{journaly.stats.winRate.toFixed(1)}%</strong>
+          </article>
+          <article>
+            <p>Trades</p>
+            <strong>{journaly.counts.trades}</strong>
+          </article>
+          <article>
+            <p>Backtests</p>
+            <strong>{journaly.counts.backtests}</strong>
+          </article>
+        </section>
+
+        <section className="dashboardGrid">
+          <article className="featurePanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Latest Trade</p>
+                <h2>{latestTrade ? `${latestTrade.pair} ${latestTrade.direction}` : "No trade loaded"}</h2>
+              </div>
+              {latestTrade ? <span className={latestTrade.result === "Win" ? "pillWin" : "pillLoss"}>{latestTrade.result}</span> : null}
             </div>
-            <div className="signalGrid">
-              {metrics.map(([label, value]) => (
-                <div className="signal" key={label}>
-                  <p>{label}</p>
-                  <strong>{value}</strong>
+            {latestTrade ? (
+              <>
+                <div className="tradeHero">
+                  {legacyAssetUrl(latestTrade.screenshot_path) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={legacyAssetUrl(latestTrade.screenshot_path) ?? ""} alt="" />
+                  ) : (
+                    <div className="emptyImage">No screenshot</div>
+                  )}
+                </div>
+                <div className="tradeMeta">
+                  <span>{formatDate(latestTrade.trade_date)}</span>
+                  <span>{latestTrade.setup_type}</span>
+                  <strong>{formatR(latestTrade.pnl_r)}</strong>
+                </div>
+              </>
+            ) : (
+              <p className="emptyText">Import your SQL in Supabase to populate the dashboard.</p>
+            )}
+          </article>
+
+          <article className="listPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Recent Trades</p>
+                <h2>Execution log</h2>
+              </div>
+              <Link href="/trades">View all</Link>
+            </div>
+            <div className="rowList">
+              {journaly.trades.slice(0, 6).map((trade) => (
+                <div className="dataRow" key={trade.id}>
+                  <div>
+                    <strong>{trade.pair}</strong>
+                    <span>{trade.setup_type} · {formatDate(trade.trade_date)}</span>
+                  </div>
+                  <b className={Number(trade.pnl_r) >= 0 ? "positive" : "negative"}>{formatR(trade.pnl_r)}</b>
                 </div>
               ))}
+              {journaly.trades.length === 0 ? <p className="emptyText">No trades found yet.</p> : null}
             </div>
-          </aside>
-        </div>
-      </section>
+          </article>
 
-      <section className="workspace">
-        <div className="sectionHeader">
-          <p className="eyebrow">Execution Path</p>
-          <h2>Move the database, then refine the product.</h2>
-        </div>
-
-        <div className="stepGrid">
-          {migrationSteps.map((step, index) => (
-            <article className="stepCard" key={step.command}>
-              <div className="stepNumber">{String(index + 1).padStart(2, "0")}</div>
-              <p className="cardEyebrow">{step.eyebrow}</p>
-              <h3>{step.title}</h3>
-              <p>{step.detail}</p>
-              <code>{step.command}</code>
-            </article>
-          ))}
-        </div>
-
-        <div className="lowerGrid">
-          <section className="panel dataPanel">
-            <div>
-              <p className="eyebrow">Data Integrity</p>
-              <h2>No silent rewrites.</h2>
+          <article className="listPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Research</p>
+                <h2>Active ideas</h2>
+              </div>
+              <Link href="/research">Open</Link>
             </div>
-            <ul className="checkList">
-              {integrityChecks.map((item) => (
-                <li key={item}>
-                  <span aria-hidden="true" />
-                  {item}
-                </li>
+            <div className="tagList">
+              {journaly.research.map((idea) => (
+                <span key={idea.id}>{idea.title}</span>
               ))}
-            </ul>
-          </section>
-
-          <section className="panel tablePanel">
-            <div>
-              <p className="eyebrow">Legacy Coverage</p>
-              <h2>{legacyTables.length} tables tracked.</h2>
+              {journaly.research.length === 0 ? <p className="emptyText">No research ideas found yet.</p> : null}
             </div>
-            <div className="tableCloud">
-              {legacyTables.map((table) => (
-                <span key={table}>{table}</span>
+          </article>
+
+          <article className="listPanel">
+            <div className="panelHeader">
+              <div>
+                <p className="eyebrow">Quick Notes</p>
+                <h2>Desk notes</h2>
+              </div>
+            </div>
+            <div className="noteStack">
+              {journaly.notes.slice(0, 3).map((note) => (
+                <div className="noteCard" key={note.id}>
+                  <strong>{note.title}</strong>
+                  <p>{note.note_text || "Empty note"}</p>
+                </div>
               ))}
+              {journaly.notes.length === 0 ? <p className="emptyText">No notes found yet.</p> : null}
             </div>
-          </section>
-        </div>
-
-        <section className="commandPanel" aria-label="Migration command block">
-          <div>
-            <p className="eyebrow">Current Guardrail</p>
-            <h2>Keep the old Journaly live until verification passes.</h2>
-          </div>
-          <pre>
-            <code>{`npm run migration:build
-npm run migration:verify
-npm run storage:upload`}</code>
-          </pre>
+          </article>
         </section>
       </section>
     </main>
