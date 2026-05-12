@@ -11,7 +11,8 @@
     "storage:upload": "node scripts/upload-legacy-assets-to-supabase.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.105.4",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
