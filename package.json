@@ -1,0 +1,25 @@
+{
+  "name": "journaly-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "migration:build": "node scripts/convert-mysql-dump-to-supabase.mjs",
+    "migration:verify": "node scripts/verify-legacy-export.mjs",
+    "storage:upload": "node scripts/upload-legacy-assets-to-supabase.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.105.4",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}
